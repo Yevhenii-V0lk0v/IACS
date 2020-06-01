@@ -8,6 +8,7 @@ import scala.util.Random
 import java.io.{File, FileWriter}
 
 //git on https://github.com/Yevhenii-V0lk0v/IACS.git
+//you can find an executable file there: IACS-assembly-0.1.jar
 
 object Task extends App {
   val random = new Random(0)
@@ -24,19 +25,24 @@ object Task extends App {
       case 0 => (nodes, arcs)
       case _ =>
         val node = Node(random.nextFloat() <= colorDistribution, nodes.size)
-        val nodePowers = parallelMap(nodes.filter(n => n.blue != node.blue), 300, (n: Node) => (n, arcs.count(_.contains(n)).toDouble))
+        val nodePowers = parallelMap(nodes.filter(n => n.blue != node.blue), 300, (n: Node) => (n, arcs.count(_.contains(n)).toDouble)).toList
 
         val powerSum = nodePowers.map(_._2).sum
 
-        @tailrec
-        def getRandomNode: Node = {
-          nodePowers.find(p => random.nextDouble() <= (p._2 / powerSum)) match {
-            case Some(value) => value._1
-            case None => getRandomNode
+        def getRandomNode(randomPoint: Double): Node = {
+          @tailrec
+          def getRandomNodeInternal(randomPoint: Double, candidates: List[(Node, Double)]): Node = {
+            if (randomPoint <= candidates.head._2) {
+              candidates.head._1
+            } else {
+              getRandomNodeInternal(randomPoint - candidates.head._2, candidates.tail)
+            }
           }
+
+          getRandomNodeInternal(randomPoint, nodePowers)
         }
 
-        solve(counter - 1, colorDistribution, node :: nodes, Arc(node, getRandomNode, arcs.length) :: arcs)
+        solve(counter - 1, colorDistribution, node :: nodes, Arc(node, getRandomNode(random.nextDouble()), arcs.length) :: arcs)
     }
   }
 
@@ -59,7 +65,7 @@ object Task extends App {
 
   val (nodes, arcs) = solve(nodeAmount - 2, 0.6, List(a, b), List(Arc(a, b, 0)))
 
-    saveGraph(nodes.sortBy(_.id), arcs.sortBy(_.id))
+//    saveGraph(nodes.sortBy(_.id), arcs.sortBy(_.id))
 
   val (blues, pinks) = nodes.partition(_.blue)
 
